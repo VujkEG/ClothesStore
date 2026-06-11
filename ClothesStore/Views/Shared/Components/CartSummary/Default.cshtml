@@ -1,0 +1,17 @@
+@model Cart
+
+<div class="d-flex align-items-center justify-content-end" id="cart-summary-wrapper">
+    <small class="navbar-text text-white me-2 d-none d-sm-inline cart-info-text" style="@(Model.Lines.Count() == 0 ? "display:none !important;" : "")">
+        <strong>Tvoja korpa:</strong>
+        <span id="cart-badge" class="badge bg-dark text-warning ms-1">
+            @Model.Lines.Sum(x => x.Quantity) artikal(a)
+        </span>
+        <span id="cart-total" class="ms-1 fw-bold text-light">
+            @Model.ComputeTotalValue().ToString("#,##0") RSD
+        </span>
+    </small>
+    <a class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm position-relative"
+       asp-page="/Cart">
+        <i class="fas fa-shopping-cart me-1"></i> KORPA
+    </a>
+</div>

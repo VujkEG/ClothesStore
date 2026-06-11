@@ -1,0 +1,83 @@
+@page "/admin/products/create"
+@page "/admin/products/edit/{id:long}"
+@inherits OwningComponentBase<IStoreRepository>
+
+<style>
+    div.validation-message { color: #dc3545; font-weight: bold; font-size: 0.875em; }
+</style>
+
+<div class="bg-white p-4 rounded-4 shadow-sm border-0">
+    <h5 class="bg-@ThemeColor text-white text-center p-3 rounded-3 fw-bold mb-4">
+        <i class="fas @(Id == 0 ? "fa-plus-circle" : "fa-edit") me-2"></i>@TitleText Proizvod
+    </h5>
+
+    <EditForm Model="ProductData" OnValidSubmit="SaveProduct" class="p-2">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Naziv proizvoda:</label>
+            <ValidationMessage For="@(() => ProductData.Name)" />
+            <InputText class="form-control" @bind-Value="ProductData.Name" placeholder="npr. Premium Oversized Duks" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Opis proizvoda:</label>
+            <ValidationMessage For="@(() => ProductData.Description)" />
+            <InputTextArea class="form-control" @bind-Value="ProductData.Description" rows="3" placeholder="Unesite detaljan opis artikla..." />
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Kategorija:</label>
+                <ValidationMessage For="@(() => ProductData.Category)" />
+                <InputText class="form-control" @bind-Value="ProductData.Category" placeholder="npr. Muška odeća" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Cena (RSD):</label>
+                <ValidationMessage For="@(() => ProductData.Price)" />
+                <InputNumber class="form-control" @bind-Value="ProductData.Price" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Zalihe (Stanje):</label>
+                <ValidationMessage For="@(() => ProductData.Stock)" />
+                <InputNumber class="form-control" @bind-Value="ProductData.Stock" />
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="submit" class="btn btn-@ThemeColor px-4 fw-bold text-white">
+                <i class="fas fa-save me-1"></i> Sačuvaj
+            </button>
+            <NavLink class="btn btn-secondary px-4" href="/admin/products">
+                <i class="fas fa-times me-1"></i> Otkaži
+            </NavLink>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Inject]
+    public NavigationManager? NavManager { get; set; }
+
+    [Parameter]
+    public long Id { get; set; } = 0;
+
+    public Product ProductData { get; set; } = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Id != 0)
+        {
+            ProductData = Service.Products.FirstOrDefault(p => p.ProductID == Id) ?? new Product();
+        }
+    }
+
+    public void SaveProduct()
+    {
+        Service.SaveProduct(ProductData);
+        NavManager?.NavigateTo("/admin/products");
+    }
+
+    public string ThemeColor => Id == 0 ? "primary" : "info";
+    public string TitleText => Id == 0 ? "Kreiraj novi" : "Izmeni";
+}

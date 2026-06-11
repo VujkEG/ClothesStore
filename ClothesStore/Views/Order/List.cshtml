@@ -1,0 +1,42 @@
+@model IEnumerable<Order>
+
+@{
+    ViewBag.Title = "Narudžbine";
+    Layout = "_AdminLayout";
+}
+
+<table class="table table-sm table-striped table-bordered">
+    <thead class="bg-light">
+        <tr>
+            <th>Ime kupca</th>
+            <th>Poštanski broj</th>
+            <th colspan="2">Proizvod</th>
+            <th>Količina</th>
+            <th>Akcija</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (Order o in Model) {
+            <tr>
+                <td>@o.Name</td>
+                <td>@o.Zip</td>
+                <th>Proizvod</th>
+                <th>Količina</th>
+                <td>
+                    <form asp-action="MarkShipped" method="post">
+                        <input type="hidden" name="orderId" value="@o.OrderID" />
+                        <button type="submit" class="btn btn-sm btn-danger">Pošalji</button>
+                    </form>
+                </td>
+            </tr>
+            @foreach (CartLine line in o.Lines) {
+                <tr>
+                    <td colspan="2"></td>
+                    <td>@line.Product.Name</td>
+                    <td>@line.Quantity</td>
+                    <td></td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>

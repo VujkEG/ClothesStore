@@ -1,0 +1,60 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<div class="d-flex align-items-center justify-content-center py-4">
+    <div class="card shadow border-0 rounded-4 bg-white p-4 w-100" style="max-width: 480px;">
+        <div class="text-center mb-4">
+            <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                <i class="fas fa-user-plus fs-3"></i>
+            </div>
+            <h3 class="fw-bold text-dark m-0">Kreirajte nalog</h3>
+            <p class="text-muted small mt-1">Postanite član i uživajte u bržoj kupovini.</p>
+        </div>
+
+        <form action="/Account/Register" method="post">
+            <div asp-validation-summary="All" class="text-danger small mb-3 list-unstyled fw-semibold"></div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary">Ime i prezime</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-id-card"></i></span>
+                    <input type="text" name="fullName" value="@ViewBag.FullName" class="form-control bg-light border-start-0 shadow-none ps-0" placeholder="npr. Nikola Nikolić" required />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary">Korisničko ime</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-user"></i></span>
+                    <input type="text" name="username" value="@ViewBag.Username" class="form-control bg-light border-start-0 shadow-none ps-0" placeholder="Izaberite korisničko ime" required />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary">Lozinka</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-key"></i></span>
+                    <input type="password" name="password" class="form-control bg-light border-start-0 shadow-none ps-0" placeholder="Minimum 8 karaktera, 1 veliko slovo i broj" required />
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fw-bold text-secondary">Potvrdite lozinku</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-shield-alt"></i></span>
+                    <input type="password" name="confirmPassword" class="form-control bg-light border-start-0 shadow-none ps-0" placeholder="Ponovite lozinku" required />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 py-2.5 rounded-pill fw-bold shadow-sm mb-3" style="background-color: #10b981; border: none;">
+                Registruj me <i class="fas fa-check-circle ms-1 small"></i>
+            </button>
+
+            <div class="text-center">
+                <span class="text-muted small">Već imate nalog?</span>
+                <a href="/Account/Login" class="text-primary small fw-bold text-decoration-none ms-1">Prijavite se</a>
+            </div>
+        </form>
+    </div>
+</div>

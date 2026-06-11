@@ -1,0 +1,51 @@
+@model Product
+
+<div class="card h-100 shadow-sm border-0 transition-hover">
+    <div class="card-body d-flex flex-column p-4">
+        <span class="badge bg-light text-primary align-self-start mb-2 px-3 py-2 rounded-pill fw-bold">
+            @Model.Category
+        </span>
+        
+        <h5 class="card-title fw-bold text-dark mb-1">@Model.Name</h5>
+        <p class="card-text text-muted small flex-grow-1">@Model.Description</p>
+        
+        @if (Model.Stock > 0 && Model.Stock < 5) {
+            <div class="text-danger small fw-bold mb-2 p-1 rounded bg-danger bg-opacity-10 text-center">
+                <i class="fas fa-exclamation-triangle me-1"></i> Ostalo još samo @Model.Stock kom!
+            </div>
+        }
+
+        <div class="d-flex flex-column gap-3 mt-auto">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 border rounded bg-white shadow-inner">
+                
+                <span class="fs-4 fw-bolder text-primary m-0" style="min-width: fit-content; flex-shrink: 0;">
+                    @Model.Price.ToString("c")
+                </span>
+                
+                @if (Model.Stock > 0) {
+                    <div class="d-flex align-items-center rounded-pill border bg-light" style="height: 38px; flex-shrink: 0; min-width: 120px; overflow: hidden;">
+                        <button class="btn btn-sm btn-minus border-0 fw-bold text-secondary h-100 px-3" type="button" data-id="@Model.ProductID" style="background: transparent;">-</button>
+                        <input type="number" id="quantity-@Model.ProductID" class="form-control text-center fw-bold border-0 p-0 m-0 h-100" value="1" min="1" max="@Model.Stock" readonly style="width: 35px; box-shadow: none; background: transparent; pointer-events: none;" />
+                        <button class="btn btn-sm btn-plus border-0 fw-bold text-secondary h-100 px-3" type="button" data-id="@Model.ProductID" style="background: transparent;">+</button>
+                    </div>
+                }
+            </div>
+            
+            <form id="@Model.ProductID" class="ajax-cart-form w-100 m-0" asp-page="/Cart" method="post">
+                <input type="hidden" name="productId" value="@Model.ProductID" />
+                <input type="hidden" name="quantity" id="form-quantity-@Model.ProductID" value="1" />
+                <input type="hidden" name="returnUrl" value="@System.Net.WebUtility.UrlDecode(ViewContext.HttpContext.Request.PathAndQuery())" />
+                
+                @if (Model.Stock > 0) {
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm py-2">
+                        <i class="fas fa-cart-plus me-1"></i> Add To Cart
+                    </button>
+                } else {
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-bold py-2" disabled>
+                        <i class="fas fa-times-circle me-1"></i> Rasprodato
+                    </button>
+                }
+            </form>
+        </div>
+    </div>
+</div>

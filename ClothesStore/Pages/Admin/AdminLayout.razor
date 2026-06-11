@@ -1,0 +1,91 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@using ClothesStore.Models
+@using Microsoft.EntityFrameworkCore
+@inject NavigationManager NavigationManager
+@inject IOrderRepository Repository
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-3 bg-dark text-white p-4 vh-100 position-fixed" style="width: 240px; left: 0; top: 0;">
+            <div class="d-flex align-items-center mb-4">
+                <i class="fas fa-user-shield fa-2x text-primary me-2"></i>
+                <h4 class="mb-0 fw-bold">Admin Panel</h4>
+            </div>
+
+            <hr class="bg-secondary" />
+
+            <div class="nav flex-column nav-pills mt-4">
+                <NavLink class="nav-link text-white mb-2 p-3 rounded-3 d-flex align-items-center"
+                         href="/admin/products" Match="NavLinkMatch.Prefix">
+                    <i class="fas fa-tshirt me-2"></i> Proizvodi
+                </NavLink>
+
+                <NavLink class="nav-link text-white mb-2 p-3 rounded-3 d-flex align-items-center justify-content-between"
+                         href="/admin/orders" Match="NavLinkMatch.All">
+                    <div>
+                        <i class="fas fa-shopping-basket me-2"></i> Porudžbine
+                    </div>
+                    <span class="badge bg-danger rounded-pill px-2 py-1 fw-bold">@BrojAktivnih</span>
+                </NavLink>
+
+                <NavLink class="nav-link text-white mb-2 p-3 rounded-3 d-flex align-items-center justify-content-between"
+                         href="/admin/orders?status=isporucene" Match="NavLinkMatch.All">
+                    <div>
+                        <i class="fas fa-archive me-2 text-success"></i> Arhiva
+                    </div>
+                    <span class="badge bg-secondary rounded-pill px-2 py-1 text-white fw-bold">@BrojPoslatih</span>
+                </NavLink>
+            </div>
+
+            <div class="position-absolute bottom-0 start-0 w-100 p-4">
+                <a class="btn btn-outline-light w-100 fw-bold rounded-3 py-2" href="/">
+                    <i class="fas fa-store me-1"></i> Nazad na prodavnicu
+                </a>
+            </div>
+        </div>
+
+        <div class="col px-5 py-4" style="margin-left: 240px;">
+            @Body
+        </div>
+    </div>
+</div>
+
+@code {
+    private int BrojAktivnih { get; set; } = 0;
+    private int BrojPoslatih { get; set; } = 0;
+
+    protected override void OnInitialized()
+    {
+        IzracunajBrojace();
+        // Pretplata na promenu rute - brojevi se osvežavaju kad god klikneš kroz navigaciju
+        NavigationManager.LocationChanged += OsveziBrojace;
+    }
+
+    private void IzracunajBrojace()
+    {
+        try
+        {
+            if (Repository?.Orders != null)
+            {
+                // Pošto smo ranije namestili da "Obriši" zapravo samo menja Shipped u true,
+                // ovo je najčistiji način da uvek dobiješ tačan broj iz baze.
+                BrojAktivnih = Repository.Orders.Count(o => o.Shipped == false);
+                BrojPoslatih = Repository.Orders.Count(o => o.Shipped == true);
+            }
+        }
+        catch { }
+    }
+
+    private void OsveziBrojace(object? sender, LocationChangedEventArgs e)
+    {
+        IzracunajBrojace();
+        InvokeAsync(StateHasChanged);
+    }
+
+    // Čišćenje memorije kada se komponenta ugasi (Blazor standard)
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OsveziBrojace;
+    }
+}

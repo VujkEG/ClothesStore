@@ -1,0 +1,20 @@
+@model IEnumerable<string>
+
+<div class="d-flex flex-column gap-1">
+    <a href="/" class="btn text-start rounded-3 py-2 px-3 fw-bold transition-all border-0 @(ViewBag.SelectedCategory == null ? "btn-primary shadow" : "btn-light text-dark")" style="font-size: 0.9rem;">
+        <i class="fas fa-border-all me-2"></i> Svi proizvodi
+    </a>
+    
+    @foreach (string category in Model)
+    {
+        <a href="@Url.Action("Index", "Home", new { category = category, productPage = 1 })" 
+           class="btn text-start rounded-3 py-2 px-3 fw-bold transition-all border-0 @(category == ViewBag.SelectedCategory ? "btn-primary shadow" : "btn-light text-dark")" style="font-size: 0.9rem;">
+            @if (category == "Muška odeća") { <i class="fas fa-mars me-2 text-info"></i> }
+            else if (category == "Ženska odeća") { <i class="fas fa-venus me-2 text-danger"></i> }
+            else if (category == "Obuća") { <i class="fas fa-boot me-2 text-success"></i> }
+            else if (category == "Aksesoari") { <i class="fas fa-gem me-2 text-warning"></i> }
+            else { <i class="fas fa-tags me-2"></i> }
+            @category
+        </a>
+    }
+</div>

@@ -1,0 +1,94 @@
+@page "/admin/products"
+@inherits OwningComponentBase<IStoreRepository>
+
+<div class="bg-white p-4 rounded-4 shadow-sm border-0">
+    <div class="d-flex justify-content-between align-items-center bg-primary text-white p-3 rounded-3 mb-4">
+        <h5 class="mb-0 fw-bold">
+            <i class="fas fa-tshirt me-2"></i>Upravljanje Proizvodima
+        </h5>
+        <span class="badge bg-light text-dark fw-bold">Ukupno: @(ProductData?.Count() ?? 0)</span>
+    </div>
+
+    <table class="table table-sm table-striped table-bordered align-middle text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Naziv</th>
+                <th>Kategorija</th>
+                <th>Cena</th>
+                <th>Akcije</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ProductData == null || !ProductData.Any())
+            {
+                <tr>
+                    <td colspan="5" class="text-center p-4 text-muted">Nema unetih proizvoda u bazi.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (Product p in ProductData)
+                {
+                    <tr>
+                        <td>#@p.ProductID</td>
+                        <td class="fw-bold text-start">@p.Name</td>
+                        <td>@p.Category</td>
+                        <td class="fw-bold text-success">@p.Price.ToString("#,##0") RSD</td>
+                        <td>
+                            <a class="btn btn-sm btn-warning fw-bold me-1" href="/admin/products/edit/@p.ProductID">
+                                <i class="fas fa-edit"></i> Izmeni
+                            </a>
+                            <button class="btn btn-sm btn-danger fw-bold" @onclick="() => DeleteProduct(p)">
+                                <i class="fas fa-trash"></i> Obriši
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div class="mt-3">
+        <a class="btn btn-primary fw-bold" href="/admin/products/create">
+            <i class="fas fa-plus-circle me-1"></i> Novi proizvod
+        </a>
+    </div>
+</div>
+
+@code {
+    public IStoreRepository Repository => Service;
+    public IEnumerable<Product> ProductData { get; set; } = Enumerable.Empty<Product>();
+
+    protected override void OnInitialized()
+    {
+        UpdateData();
+    }
+
+    public void UpdateData()
+    {
+        try
+        {
+            var data = Repository.Products?.ToList();
+            ProductData = data ?? Enumerable.Empty<Product>();
+        }
+        catch (Exception)
+        {
+            // Potpuna zaštita od iskakanja crvenog banera
+            ProductData = Enumerable.Empty<Product>();
+        }
+    }
+
+    public void DeleteProduct(Product p)
+    {
+        try
+        {
+            Repository.DeleteProduct(p);
+            UpdateData();
+        }
+        catch (Exception)
+        {
+            // Sprečavamo Blazor da detektuje grešku i sruši interfejs
+        }
+    }
+}

@@ -1,0 +1,94 @@
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+
+<CascadingAuthenticationState>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-3 col-lg-2 bg-dark min-vh-100 p-3 text-white shadow">
+
+                <a href="/admin" class="d-flex align-items-center mb-4 text-white text-decoration-none border-bottom pb-3 px-3 py-2 rounded-3 admin-logo-btn">
+                    <i class="fas fa-user-shield text-primary fa-2x me-2"></i>
+                    <span class="fs-5 fw-bold">Admin Panel</span>
+                </a>
+
+                <ul class="nav nav-pills flex-column mb-auto gap-2">
+                    <li class="nav-item">
+                        <NavLink href="/admin/products" class="nav-link text-white d-flex align-items-center gap-2 px-3 py-2 rounded" ActiveClass="bg-primary active">
+                            <i class="fas fa-tshirt text-info w-20"></i> Proizvodi
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink href="/admin/orders" class="nav-link text-white d-flex align-items-center gap-2 px-3 py-2 rounded" ActiveClass="bg-primary active">
+                            <i class="fas fa-shopping-bag text-warning w-20"></i> Porudžbine
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink href="/admin/archive" class="nav-link text-white d-flex align-items-center gap-2 px-3 py-2 rounded" ActiveClass="bg-primary active">
+                            <i class="fas fa-archive text-success w-20"></i> Arhiva
+                        </NavLink>
+                    </li>
+                </ul>
+                <hr class="mt-4">
+                <div class="text-center">
+                    <a href="/" class="btn btn-sm btn-outline-light w-100 fw-bold">
+                        <i class="fas fa-store me-1"></i> Nazad na prodavnicu
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-9 col-lg-10 bg-light p-4 min-vh-100">
+                <Router AppAssembly="@typeof(Program).Assembly">
+                    <Found Context="routeData">
+                        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(AdminSimpleLayout)">
+                            <NotAuthorized>
+                                <div class="container text-center p-5 mt-5 bg-white rounded-4 shadow border border-danger border-opacity-20" style="max-width: 550px;">
+                                    <div class="mb-3">
+                                        <i class="fas fa-lock text-danger fa-4x p-3 bg-danger bg-opacity-10 rounded-circle"></i>
+                                    </div>
+                                    <h3 class="fw-bold text-dark mb-2">Pristup je Zaključan</h3>
+                                    <p class="text-muted">Nemate dozvolu za pristup ovom delu aplikacije. Admin panel je pod strogim bezbednosnim protokolom.</p>
+                                    <hr class="my-4" />
+                                    <a href="/Account/Login" target="_top" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Prijavi se na sistem
+                                    </a>
+                                </div>
+                            </NotAuthorized>
+                            <Authorizing>
+                                <div class="text-center p-5 my-5">
+                                    <div class="spinner-border text-primary shadow-sm" role="status" style="width: 3rem; height: 3rem;"></div>
+                                    <h5 class="text-secondary fw-bold mt-3">Provera bezbednosnog sertifikata...</h5>
+                                </div>
+                            </Authorizing>
+                        </AuthorizeRouteView>
+                        <FocusOnNavigate RouteData="@routeData" Selector="h5" />
+                    </Found>
+                    <NotFound>
+                        <div class="container text-center p-5 mt-5 bg-white rounded-3 shadow-sm border">
+                            <i class="fas fa-exclamation-circle text-warning fa-3x mb-3"></i>
+                            <h3 class="fw-bold">Stranica u admin panelu nije pronađena</h3>
+                            <p class="text-muted">Ruter nije uspeo da učita traženu komponentu.</p>
+                            <a href="/admin" class="btn btn-primary fw-bold mt-2">Vrati se na početak</a>
+                        </div>
+                    </NotFound>
+                </Router>
+            </div>
+        </div>
+    </div>
+</CascadingAuthenticationState>
+
+<style>
+    .admin-logo-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transition: background-color 0.2s ease-in-out;
+    }
+</style>
+
+@code {
+    public class AdminSimpleLayout : LayoutComponentBase
+    {
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
+        {
+            builder.AddContent(0, Body);
+        }
+    }
+}

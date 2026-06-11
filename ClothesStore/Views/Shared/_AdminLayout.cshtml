@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Admin - ClothesStore</title>
+    <link href="/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <span class="navbar-brand">ADMIN PANEL</span>
+            <div>
+                <a class="btn btn-sm btn-outline-primary text-white mr-2" href="/Admin/Index">Proizvodi</a>
+                <a class="btn btn-sm btn-outline-primary text-white mr-2" href="/Order/List">Narudžbine</a>
+                <a class="btn btn-sm btn-info text-white" href="/">Nazad na sajt</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card shadow-sm p-4">@RenderBody()</div>
+    </div>
+</body>
+</html>

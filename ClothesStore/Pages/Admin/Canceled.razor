@@ -1,0 +1,41 @@
+@page "/admin/canceled"
+@inherits OwningComponentBase<IOrderRepository>
+
+<h5 class="bg-danger text-white text-center p-2">Otkazane porudžbine</h5>
+
+<table class="table table-sm table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>KUPAC</th>
+            <th>GRAD</th>
+            <th>DATUM</th>
+            <th>STATUS</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (CanceledOrders?.Count() > 0) {
+            @foreach (Order o in CanceledOrders) {
+                <tr>
+                    <td>@o.FirstName @o.LastName</td>
+                    <td>@o.City</td>
+                    <td>@o.OrderDate.ToString("dd.MM.yyyy")</td>
+                    <td><span class="badge bg-secondary">@o.Status</span></td>
+                </tr>
+            }
+        } else {
+            <tr>
+                <td colspan="4" class="text-center">Nema otkazanih porudžbina.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    public IOrderRepository Repository => Service;
+    public IEnumerable<Order> CanceledOrders { get; set; } = Enumerable.Empty<Order>();
+
+    protected override async Task OnInitializedAsync() {
+        var all = await Repository.Orders.ToListAsync();
+        CanceledOrders = all.Where(o => o.Status == "Otkazano" || o.Status == "Canceled");
+    }
+}

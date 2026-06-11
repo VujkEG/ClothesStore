@@ -1,0 +1,446 @@
+@page "/admin/orders"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inherits OwningComponentBase<IOrderRepository>
+@using Microsoft.JSInterop
+@using ClothesStore.Models
+@using Microsoft.EntityFrameworkCore
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<div class="bg-white p-4 rounded-4 shadow-sm border-0">
+    <div class="d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-3 mb-4">
+        <h5 class="mb-0 fw-bold">
+            <i class="@IkonaPanela me-2 text-info"></i>@NaslovPanela
+        </h5>
+        <div>
+            <span class="badge bg-light text-dark fw-bold px-3 py-2 me-2 shadow-sm" style="font-size: 14px;">
+                Ukupno: @(FilteredOrders?.Count() ?? 0)
+            </span>
+            <span class="badge bg-success fw-bold px-3 py-2 shadow-sm" style="font-size: 14px;">Sistem aktivan</span>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <div class="input-group shadow-sm rounded-3">
+            <span class="input-group-text bg-dark text-white border-0 px-3">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text"
+                   class="form-control border-start-0 py-2"
+                   placeholder="Ukucaj broj porudžbine (ID) ili ime kupca za brzu pretragu..."
+                   @bind-value="searchTerm"
+                   @bind-value:event="oninput" />
+            @if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <button class="btn btn-outline-secondary border-start-0" type="button" @onclick="() => searchTerm = string.Empty">
+                    <i class="fas fa-times text-danger"></i> Očisti
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-5 my-5">
+            <div class="spinner-border text-primary shadow-sm mb-3" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Učitavanje...</span>
+            </div>
+            <h5 class="text-secondary fw-bold">Učitavanje podataka...</h5>
+        </div>
+    }
+    else if (FilteredOrders != null && FilteredOrders.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>KUPAC</th>
+                        <th>DATUM I VREME</th>
+                        <th style="width: 320px;">AKCIJE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (Order o in FilteredOrders)
+                    {
+                        string rowColor = TrenutniStatus == "isporucene" ? "table-success" :
+                        TrenutniStatus == "obrisane" ? "table-danger" : "";
+
+                        <tr class="@rowColor">
+                            <td class="fw-bold text-secondary">#@o.OrderID</td>
+                            <td class="fw-bold text-dark text-start ps-4">
+                                @(string.IsNullOrEmpty(o.Name) ? $"{o.FirstName} {o.LastName}" : o.Name)
+                            </td>
+                            <td class="text-muted fw-bold">
+                                <i class="far fa-clock me-1 text-primary"></i>
+                                @o.OrderDate.ToString("dd. MMM yyyy, HH:mm")
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <button class="btn btn-sm btn-info text-white fw-bold px-2 shadow-sm" @onclick="() => OpenDetails(o)">
+                                        <i class="fas fa-eye"></i> Detalji
+                                    </button>
+
+                                    @if (TrenutniStatus == "obrisane")
+                                    {
+                                        <button class="btn btn-sm btn-warning text-dark fw-bold px-2 shadow-sm" @onclick="() => VratiIzObrisanih(o)">
+                                            <i class="fas fa-undo"></i> Vrati
+                                        </button>
+
+                                        <button class="btn btn-sm btn-danger fw-bold px-2 shadow-sm" @onclick="() => PotvrdiTrajnoBrisanje(o)">
+                                            <i class="fas fa-exclamation-triangle"></i> Obriši trajno
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        @if (!o.Shipped)
+                                        {
+                                            <button class="btn btn-sm btn-success fw-bold px-2 shadow-sm" @onclick="() => ShipOrder(o.OrderID)">
+                                                <i class="fas fa-check"></i> Isporuči
+                                            </button>
+                                        }
+                                        <button class="btn btn-sm btn-danger fw-bold px-2 shadow-sm" @onclick="() => PotvrdiPreBrisanja(o)">
+                                            <i class="fas fa-trash-alt"></i> Obriši
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="text-center p-5 bg-light rounded-3 border">
+            <i class="fas fa-search-minus text-muted fa-3x mb-3"></i>
+            <h5 class="text-secondary fw-bold">Nema rezultata za uneti pojam ili sekciju.</h5>
+        </div>
+    }
+</div>
+
+@if (selectedOrder != null)
+{
+    <div class="modal fade show" style="display:block; background-color: rgba(0,0,0,0.6);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-file-invoice me-2 text-warning"></i>Porudžbina #@selectedOrder.OrderID
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4" style="max-height: 75vh; overflow-y: auto;">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <h6 class="fw-bold text-secondary text-uppercase border-bottom pb-2">
+                                <i class="fas fa-user me-1"></i> Podaci za slanje
+                            </h6>
+                            <p class="mb-1"><strong>Kupac:</strong> @(string.IsNullOrEmpty(selectedOrder.Name) ? $"{selectedOrder.FirstName} {selectedOrder.LastName}" : selectedOrder.Name)</p>
+                            <p class="mb-1"><strong>Email:</strong> @(selectedOrder.Email ?? "Nije unet")</p>
+                            <p class="mb-1">
+                                <strong>Adresa:</strong> <br />
+                                <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                @selectedOrder.Line1, @selectedOrder.City, @(string.IsNullOrEmpty(selectedOrder.State) ? "" : selectedOrder.State + ", ") @selectedOrder.Zip, @selectedOrder.Country
+                            </p>
+                            <p class="mb-1 mt-2">
+                                <strong>Pakovanje za poklon:</strong>
+                                @if (selectedOrder.GiftWrap)
+                                {
+                                    <span class="badge bg-warning text-dark fw-bold">Da 🎁</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary fw-bold">Ne</span>
+                                }
+                            </p>
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <h6 class="fw-bold text-secondary text-uppercase border-bottom pb-2">
+                                <i class="fas fa-edit me-1 text-warning"></i> Interne Beleške / Komentari
+                            </h6>
+                            <textarea class="form-control mb-2 small shadow-sm" rows="4"
+                                      placeholder="Kupac promenio broj telefona u... Čeka se kurir..."
+                                      @bind="selectedOrder.Notes"></textarea>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-dark fw-bold px-3 rounded-2 shadow-sm" @onclick="SacuvajBelesku">
+                                    <i class="fas fa-save me-1"></i> Sačuvaj komentar
+                                </button>
+                                @if (prikaziPorukuZaBelesku)
+                                {
+                                    <span class="text-success small fw-bold"><i class="fas fa-check-circle"></i> Sačuvano!</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="fw-bold text-secondary text-uppercase border-bottom pb-2">
+                            <i class="fas fa-th-list me-1"></i> Proizvodi
+                        </h6>
+                        <div class="bg-light p-3 rounded-3">
+                            @if (selectedOrder.Lines != null)
+                            {
+                                @foreach (CartLine line in selectedOrder.Lines)
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-10">
+                                        <div>
+                                            <i class="fas fa-shopping-basket text-muted me-2"></i>
+                                            <span class="fw-bold text-dark">@(line.Product?.Name ?? "Proizvod")</span>
+                                        </div>
+                                        <span class="badge bg-dark fw-bold px-3 py-2 text-warning">@line.Quantity kom</span>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center bg-success bg-opacity-10 p-3 rounded-3 mt-3">
+                        <span class="fw-bold text-success h5 mb-0">Za naplatu:</span>
+                        <span class="fw-bold text-success h5 mb-0">@(selectedOrder.Lines?.Sum(l => l.Quantity * (l.Product?.Price ?? 0)).ToString("#,##0") ?? "0") RSD</span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-secondary fw-bold px-4 rounded-3" @onclick="CloseModal">Zatvori</button>
+                    @if (!selectedOrder.Shipped && !selectedOrder.IsDeleted)
+                    {
+                        <button class="btn btn-success fw-bold px-4 rounded-3 shadow-sm" @onclick="() => ShipOrderFromModal(selectedOrder.OrderID)">
+                            <i class="fas fa-check me-1"></i> Isporuči odmah & Pošalji Email
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public IOrderRepository Repository => Service;
+    public List<Order> AllOrders { get; set; } = new List<Order>();
+
+    private bool isLoading = true;
+    private string searchTerm = "";
+    private bool prikaziPorukuZaBelesku = false;
+
+    private string TrenutniStatus
+    {
+        get
+        {
+            try
+            {
+                var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+                if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("status", out var status))
+                {
+                    return status.ToString().ToLower();
+                }
+            }
+            catch { }
+            return "aktivne";
+        }
+    }
+
+    public IEnumerable<Order> FilteredOrders
+    {
+        get
+        {
+            if (AllOrders == null) return Enumerable.Empty<Order>();
+
+            @* Sigurnosna provera za null elemente unutar liste *@
+            IEnumerable<Order> orders = AllOrders.Where(o => o != null);
+
+            if (TrenutniStatus == "isporucene")
+                orders = orders.Where(o => o.Shipped && !o.IsDeleted);
+            else if (TrenutniStatus == "obrisane")
+                orders = orders.Where(o => o.IsDeleted);
+            else
+                orders = orders.Where(o => !o.Shipped && !o.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                orders = orders.Where(o =>
+                    o.OrderID.ToString().Contains(searchTerm) ||
+                    (o.Name != null && o.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (o.FirstName != null && o.FirstName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (o.LastName != null && o.LastName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                );
+            }
+
+            return orders;
+        }
+    }
+
+    public string NaslovPanela => TrenutniStatus == "isporucene" ? "Arhivirane / Isporučene Porudžbine"
+                                : TrenutniStatus == "obrisane" ? "Kanta za smeće / Obrisane Porudžbine"
+                                : "Aktivne Porudžbine";
+
+    public string IkonaPanela => TrenutniStatus == "isporucene" ? "fas fa-archive"
+                               : TrenutniStatus == "obrisane" ? "fas fa-trash-alt"
+                               : "fas fa-boxes";
+
+    private Order? selectedOrder;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateDataAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await UpdateDataAsync();
+    }
+
+    public async Task UpdateDataAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        await Task.Delay(300);
+
+        try
+        {
+            var data = Repository.Orders?
+                .Include(o => o.Lines)
+                .ThenInclude(l => l.Product)
+                .ToList();
+
+            AllOrders = data ?? new List<Order>();
+        }
+        catch (Exception)
+        {
+            AllOrders = new List<Order>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenDetails(Order order) => selectedOrder = order;
+    private void CloseModal() => selectedOrder = null;
+
+    private async Task SacuvajBelesku()
+    {
+        if (selectedOrder != null)
+        {
+            Repository.UpdateOrder(selectedOrder);
+            prikaziPorukuZaBelesku = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            prikaziPorukuZaBelesku = false;
+            StateHasChanged();
+        }
+    }
+
+    public async Task ShipOrderFromModal(long orderId)
+    {
+        CloseModal();
+        await ShipOrder(orderId);
+    }
+
+    public async Task ShipOrder(long orderId)
+    {
+        try
+        {
+            Order? o = AllOrders.FirstOrDefault(x => x.OrderID == orderId);
+            if (o != null)
+            {
+                o.Shipped = true;
+                o.Status = "Isporucena";
+                o.IsDeleted = false;
+
+                Repository.UpdateOrder(o);
+
+                // AUTOMATIZACIJA: Pokretanje koda za slanje mejla kupcu
+                SendEmailNotification(o);
+
+                await UpdateDataAsync();
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private void SendEmailNotification(Order order)
+    {
+        try
+        {
+            string emailPrimaoca = order.Email ?? "test.kupac@example.com";
+            string imeKupca = string.IsNullOrEmpty(order.Name) ? $"{order.FirstName} {order.LastName}" : order.Name;
+
+            using (var message = new System.Net.Mail.MailMessage())
+            {
+                message.To.Add(new System.Net.Mail.MailAddress(emailPrimaoca));
+                message.From = new System.Net.Mail.MailAddress("tvoja.prodavnica@gmail.com", "Clothes Store");
+                message.Subject = $"Vaša porudžbina #{order.OrderID} je na putu! 🎉";
+                message.Body = $"Zdravo {imeKupca},\n\nSjajne vesti! Vaša porudžbina #{order.OrderID} je upravo spakovana i poslata kurirskoj službi.\n\nMožete je očekivati na Vašoj adresi u roku od 24-48h.\n\nHvala Vam na ukazanom poverenju!\n\nSrdačan pozdrav,\nVaš Clothes Store tim.";
+                message.IsBodyHtml = false;
+
+                using (var client = new System.Net.Mail.SmtpClient())
+                {
+                    client.Host = "smtp.gmail.com";
+                    client.Port = 587;
+                    client.EnableSsl = true;
+                    client.Credentials = new System.Net.NetworkCredential("tvoja.prodavnica@gmail.com", "TVOJ_SMTP_LOZINKA_ILI_TOKEN");
+
+                    // client.Send(message); // Otkomenatrisati kada podesiš podatke
+
+                    System.Diagnostics.Debug.WriteLine($"[EMAIL USPEH] Poruka uspešno kreirana za kupca: {emailPrimaoca}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[EMAIL ERROR] Slanje nije uspelo: {ex.Message}");
+        }
+    }
+
+    private async Task PotvrdiPreBrisanja(Order order)
+    {
+        string imeKupca = string.IsNullOrEmpty(order.Name) ? $"{order.FirstName} {order.LastName}" : order.Name;
+        bool potvrdjeno = await JSRuntime.InvokeAsync<bool>("confirm", $"Da li ste sigurni da želite da obrišete porudžbinu #{order.OrderID} (Kupac: {imeKupca})?");
+
+        if (potvrdjeno)
+            await SoftDeleteOrder(order);
+    }
+
+    public async Task SoftDeleteOrder(Order order)
+    {
+        try
+        {
+            Repository.DeleteOrder(order);
+            await UpdateDataAsync();
+        }
+        catch (Exception) { }
+    }
+
+    public async Task VratiIzObrisanih(Order order)
+    {
+        try
+        {
+            order.IsDeleted = false;
+            order.Status = order.Shipped ? "Isporucena" : "Aktivna";
+
+            Repository.UpdateOrder(order);
+            await UpdateDataAsync();
+        }
+        catch (Exception) { }
+    }
+
+    private async Task PotvrdiTrajnoBrisanje(Order order)
+    {
+        string imeKupca = string.IsNullOrEmpty(order.Name) ? $"{order.FirstName} {order.LastName}" : order.Name;
+        bool potvrdjeno = await JSRuntime.InvokeAsync<bool>("confirm", $"PAŽNJA: Da li želite TRAJNO da obrišete porudžbinu #{order.OrderID} iz baze? Ova akcija se ne može poništiti.");
+
+        if (potvrdjeno)
+        {
+            try
+            {
+                Repository.DeleteOrder(order);
+                await UpdateDataAsync();
+            }
+            catch (Exception) { }
+        }
+    }
+}

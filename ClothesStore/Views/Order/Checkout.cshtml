@@ -1,0 +1,81 @@
+@model Order
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Check out now</h2>
+    <p class="text-muted text-center">Please enter your details, and we'll ship your goods right away!</p>
+
+    <form asp-action="Checkout" asp-controller="Order" method="post" class="shadow p-4 bg-white rounded" id="checkoutForm">
+        <div asp-validation-summary="ModelOnly" class="text-danger fw-bold mb-3"></div>
+
+        <h3 class="border-bottom pb-2">Ship to</h3>
+
+        <div class="row mt-3">
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Ime:</label>
+                <input asp-for="FirstName" class="form-control" placeholder="npr. Petar" required
+                       oninput="this.value = this.value.replace(/[^a-zA-Z\sčćžšđČĆŽŠĐ]/g, '');" />
+                <span asp-validation-for="FirstName" class="text-danger small fw-bold"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Prezime:</label>
+                <input asp-for="LastName" class="form-control" placeholder="npr. Bogosavljević" required
+                       oninput="this.value = this.value.replace(/[^a-zA-Z\sčćžšđČĆŽŠĐ]/g, '');" />
+                <span asp-validation-for="LastName" class="text-danger small fw-bold"></span>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Email adresa:</label>
+            <input asp-for="Email" class="form-control" type="email" placeholder="npr. slavujko@gmail.com" required />
+            <span asp-validation-for="Email" class="text-danger small fw-bold"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Address Line 1:</label>
+            <input asp-for="Line1" class="form-control" placeholder="Ulica i broj" required />
+            <span asp-validation-for="Line1" class="text-danger small fw-bold"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Address Line 2 (Optional):</label>
+            <input asp-for="Line2" class="form-control" placeholder="Stan, sprat, itd." />
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">City:</label>
+                <input asp-for="City" class="form-control" placeholder="npr. Kosovska Mitrovica" required
+                       oninput="this.value = this.value.replace(/[^a-zA-Z\sčćžšđČĆŽŠĐ]/g, '')" />
+                <span asp-validation-for="City" class="text-danger small fw-bold"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Zip Code:</label>
+                <input asp-for="Zip" class="form-control" placeholder="npr. 36220" required />
+                <span asp-validation-for="Zip" class="text-danger small fw-bold"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Country:</label>
+                <input asp-for="Country" class="form-control" placeholder="npr. Srbija" required
+                       oninput="this.value = this.value.replace(/[^a-zA-Z\sčćžšđČĆŽŠĐ]/g, '')" />
+                <span asp-validation-for="Country" class="text-danger small fw-bold"></span>
+            </div>
+        </div>
+
+        <h3 class="border-bottom pb-2 mt-4">Options</h3>
+        <div class="form-check mb-4">
+            <input asp-for="GiftWrap" class="form-check-input" type="checkbox" id="giftCheck" />
+            <label class="form-check-label" for="giftCheck">
+                Gift wrap these items? 🎁
+            </label>
+        </div>
+
+        <div class="text-center border-top pt-3">
+            <button class="btn btn-primary btn-lg px-5 shadow-sm" type="submit">Complete Order</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+}

@@ -1,0 +1,160 @@
+@page "/admin/archive"
+@inherits OwningComponentBase<IOrderRepository>
+@inject NavigationManager NavigationManager
+
+<div class="bg-white p-4 rounded-4 shadow-sm border-0">
+    <div class="d-flex justify-content-between align-items-center bg-secondary text-white p-3 rounded-3 mb-4">
+        <h5 class="mb-0 fw-bold">
+            <i class="fas fa-archive me-2"></i>Arhivirane Porudžbine
+        </h5>
+        <div>
+            <span class="badge bg-light text-dark fw-bold px-3 py-2 me-2 shadow-sm" style="font-size: 14px;">
+                Ukupno arhivirano: @(ArchivedOrders?.Count() ?? 0)
+            </span>
+            <span class="badge bg-success fw-bold px-3 py-2 shadow-sm" style="font-size: 14px;">Sistem aktivan</span>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center p-5 my-5">
+            <div class="spinner-border text-secondary shadow-sm mb-3" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Učitavanje...</span>
+            </div>
+            <h5 class="text-muted fw-bold">Učitavanje arhive...</h5>
+        </div>
+    }
+    else if (ArchivedOrders != null && ArchivedOrders.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Kupac</th>
+                        <th>Adresa i Lokacija</th>
+                        <th>Kupljeni Proizvodi</th>
+                        <th>Datum</th>
+                        <th>Status</th>
+                        <th>Akcija</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in ArchivedOrders)
+                    {
+                        // AKO JE OBRISANA DAJEMO BLAGO CRVENI RED, AKO JE ISPORUČENA BLAGO ZELENI RED
+                        string rowColor = o.Status == "Obrisana" ? "table-danger" : "table-success";
+
+                        <tr class="@rowColor">
+                            <td class="fw-bold">#@o.OrderID</td>
+                            <td class="fw-bold text-primary">@o.FirstName @o.LastName</td>
+                            <td class="text-start small">
+                                @o.Line1@(!string.IsNullOrEmpty(o.Line2) ? ", " + o.Line2 : "")@(!string.IsNullOrEmpty(o.Line3) ? ", " + o.Line3 : ""), @o.City, @o.Country
+                            </td>
+                            <td class="text-start">
+                                @if (o.Lines != null && o.Lines.Any())
+                                {
+                                    @foreach (CartLine line in o.Lines)
+                                    {
+                                        <div class="small mb-1">
+                                            <i class="fas fa-check text-success me-1"></i>
+                                            <span class="fw-bold">@(line.Product?.Name ?? "Proizvod")</span> — @line.Quantity kom
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Nema detalja o stavkama</span>
+                                }
+                            </td>
+                            <td class="small fw-bold text-muted">@o.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>
+                                @if (o.Status == "Obrisana")
+                                {
+                                    <span class="badge bg-danger px-2 py-1 fw-bold"><i class="fas fa-trash-alt me-1"></i> Obrisana</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success px-2 py-1 fw-bold"><i class="fas fa-check-circle me-1"></i> Isporučena</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" @onclick="@(() => UnarchiveOrder(o.OrderID))">
+                                    <i class="fas fa-undo me-1"></i> Vrati u aktivne
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="text-center p-5 bg-light rounded-3 border">
+            <i class="fas fa-folder-open text-muted fa-3x mb-3"></i>
+            <h5 class="text-secondary fw-bold">Nema arhiviranih porudžbina</h5>
+            <p class="text-muted mb-0">Sve završene porudžbine će biti prikazane na ovom mestu.</p>
+        </div>
+    }
+</div>
+
+@code {
+    public IOrderRepository Repository => Service;
+    public List<Order> AllOrders { get; set; } = new List<Order>();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateDataAsync();
+    }
+
+    public IEnumerable<Order> ArchivedOrders => AllOrders?
+        .Where(o => o != null && (o.Shipped || o.Status == "Arhivirana" || o.Status == "Isporučena" || o.Status == "Obrisana") && !o.IsDeleted)
+        ?? Enumerable.Empty<Order>();
+
+    public async Task UpdateDataAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        await Task.Delay(300); // Kratka pauza za učitavanje animacije
+
+        try
+        {
+            var ordersData = Repository.Orders?
+                .Include(o => o.Lines)
+                .ThenInclude(l => l.Product)
+                .ToList();
+            AllOrders = ordersData ?? new List<Order>();
+        }
+        catch (Exception)
+        {
+            AllOrders = new List<Order>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public async Task UnarchiveOrder(long id)
+    {
+        try
+        {
+            var order = AllOrders.FirstOrDefault(o => o.OrderID == id);
+            if (order != null)
+            {
+                order.Shipped = false;
+                order.Status = "Aktivna";
+                order.IsDeleted = false;
+
+                // SPAS: Pozivamo ispravnu UpdateOrder metodu koja stvarno radi UPDATE u bazi!
+                Repository.UpdateOrder(order);
+                await UpdateDataAsync();
+            }
+        }
+        catch (Exception) { }
+    }
+}
